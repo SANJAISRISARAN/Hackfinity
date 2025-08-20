@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CityFlow AI – Dual Smart Signals</title>
+<style>
+:root{--bg:#0b1020;--card:#121733;--accent:#00ffe0;--text:#f6f7ff;--warn:#ffd400;--danger:#ff5d6c;--ok:#14f195;--blue:#3aa0ff}
+body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text)}
+h1{margin:0;color:var(--accent)}
+.lamp{width:70px;height:70px;border-radius:50%;background:#303a66;border:3px solid #000}
+.on-red{background:#ff5d6c}.on-yellow{background:#ffd400}.on-green{background:#14f195}.on-blue{background:#3aa0ff}
+.signal{padding:12px;background:#121733;border-radius:16px;text-align:center;margin:10px auto}
+.tower{width:100px;height:280px;background:#1c244d;border-radius:14px;padding:10px;display:flex;flex-direction:column;justify-content:space-between;align-items:center}
+.blink{animation:blink .9s step-start infinite}@keyframes blink{50%{opacity:.3}}
+button{margin:3px;padding:8px 12px;border:0;border-radius:10px;cursor:pointer;font-weight:600}
+.ok{background:var(--ok)}.warn{background:var(--warn)}.danger{background:var(--danger);color:#fff}
+main{display:flex;justify-content:center;align-items:center;max-width:1200px;margin:20px auto;gap:40px}
+#left-panel{flex:1;display:flex;flex-direction:column;align-items:center;gap:20px}
+#right-panel{flex:1;display:flex;flex-direction:column;align-items:center;gap:20px}
+.control-box{background:#121733;padding:16px;border-radius:16px;text-align:center;width:100%;max-width:350px}
+</style>
+</head>
+<body>
+<header style="padding:12px;background:#111845;color:var(--text);text-align:center">
+  <h1>🚦 CityFlow AI</h1>
+  <div style="opacity:.7">Dual Smart Signals • Pedestrian Safe • Emergency Priority</div>
+</header>
+
+<main>
+  <!-- LEFT SIDE: Signals -->
+  <div id="left-panel">
+    <section class="signal">
+      <b>Signal A • North–South</b>
+      <div class="tower">
+        <div class="lamp" id="A-red"></div>
+        <div class="lamp" id="A-yellow"></div>
+        <div class="lamp" id="A-green"></div>
+        <div class="lamp" id="A-cyclist"></div>
+      </div>
+    </section>
+    <section class="signal">
+      <b>Signal B • East–West</b>
+      <div class="tower">
+        <div class="lamp" id="B-red"></div>
+        <div class="lamp" id="B-yellow"></div>
+        <div class="lamp" id="B-green"></div>
+        <div class="lamp" id="B-cyclist"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- RIGHT SIDE: Controls -->
+  <div id="right-panel">
+    <!-- Pedestrian -->
+    <div class="control-box">
+      Pedestrian: <span id="ped-man" style="background:var(--danger);padding:8px 12px;border-radius:50%">🚷</span>
+      <div style="font-size:12px;margin-top:5px">Safe: <span id="ped-time">0</span>s</div>
+    </div>
+
+    <!-- Controls -->
+    <div class="control-box">
+      <button id="start" class="ok">▶ Start</button>
+      <button id="stop">⏹ Stop</button>
+      <button id="next">⏭ Next</button>
+      <button id="ped" class="warn">🚸 Ped</button>
+      <button id="emgA" class="danger">🚑 A</button>
+      <button id="emgB" class="danger">🚑 B</button>
+      <button id="night">🌙 Night</button>
+      <button id="reset">♻ Reset</button>
+      <div style="margin-top:10px">Phase: <b id="phase">IDLE</b> | Time: <b id="timeLeft">0</b>s | CO₂: <b id="co2">0.0</b>g</div>
+    </div>
+
+    <!-- Traffic Density -->
+    <div class="control-box">
+      <label>Density A: <span id="densA-val">50</span></label><br>
+      <input type="range" id="densA" min="1" max="100" value="50">
+      <br><br>
+      <label>Density B: <span id="densB-val">50</span></label><br>
+      <input type="range" id="densB" min="1" max="100" value="50">
+    </div>
+
+    <p id="msg" style="color:#ffd400;font-weight:700">Welcome! Press ▶ Start</p>
+  </div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const lamps=s=>({r:$(s+"-red"),y:$(s+"-yellow"),g:$(s+"-green"),c:$(s+"-cyclist")});
+let run=false,phase="IDLE",side="A",co2=0,night=false,emg=null;
+let densityA=50,densityB=50;
+function clear(){["A","B"].forEach(s=>{Object.values(lamps(s)).forEach(l=>l.className="lamp")});$("ped-man").style.background="var(--danger)";}
+
+function show(s,col){
+  clear(); const l=lamps(s);
+  if(col=="green")l.g.classList.add("on-green");
+  if(col=="yellow")l.y.classList.add("on-yellow");
+  if(col=="red")l.r.classList.add("on-red");
+  if(col!="red")lamps(s=="A"?"B":"A").r.classList.add("on-red");
+}
+async function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+async function loop(){
+  run=true; while(run){
+    if(night){clear(); lamps("A").y.classList.add("on-yellow","blink");lamps("B").y.classList.add("on-yellow","blink");await sleep(500);continue;}
+    if(emg){$("phase").innerText="EMERGENCY "+emg;show(emg,"green");$("timeLeft").innerText="∞";await sleep(500);continue;}
+    let dur=(side=="A"?densityA:densityB)*50; // adjust based on density
+    $("phase").innerText=side+": GREEN";show(side,"green");await sleep(dur);
+    $("phase").innerText=side+": YELLOW";show(side,"yellow");await sleep(1200);
+    side=side=="A"?"B":"A";
+  }
+}
+$("start").onclick=()=>{if(!run)loop()};
+$("stop").onclick=()=>run=false;
+$("next").onclick=()=>side=side=="A"?"B":"A";
+$("ped").onclick=async()=>{clear();$("phase").innerText="PEDESTRIAN";$("ped-man").style.background="var(--ok)";let t=5;while(t-->0&&run){$("ped-time").innerText=t+1;await sleep(1000);} $("ped-man").style.background="var(--danger)";}
+$("emgA").onclick=()=>emg=emg=="A"?null:"A";
+$("emgB").onclick=()=>emg=emg=="B"?null:"B";
+$("night").onclick=()=>night=!night;
+$("reset").onclick=()=>{run=false;night=false;emg=null;side="A";co2=0;clear();$("phase").innerText="IDLE";$("timeLeft").innerText="0";$("co2").innerText="0.0";}
+$("densA").oninput=e=>{$("densA-val").innerText=e.target.value;densityA=+e.target.value}
+$("densB").oninput=e=>{$("densB-val").innerText=e.target.value;densityB=+e.target.value}
+</script>
+</body>
+</html>
