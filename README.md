@@ -28,4 +28,3 @@ cd traffic-light-simulator
 🏆 Hackathon Note
 This was my first college hackathon project, and it helped me understand how to combine HTML, CSS, and JavaScript to build something interactive and fun.
 
-👉 Would you like me to also create a short project tagline (one‑liner) for the repo header, like “Interactive traffic light simulation built with HTML, CSS, and JS”?
